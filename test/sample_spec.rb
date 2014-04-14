@@ -20,4 +20,16 @@ describe 'PRSpec' do
   it 'Sample 6 - Expect ignore' do
     pending    
   end
+
+  it 'Description containing "doublequotes"' do
+    actual = true
+    expected = true
+    expect(actual).to eq(expected)
+  end
+
+  it 'Description containing \'singlequotes\'' do
+    actual = true
+    expected = true
+    expect(actual).to eq(expected)
+  end
 end

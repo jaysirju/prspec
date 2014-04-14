@@ -15,8 +15,18 @@ RSpec.configure do |config|
   end
 
   config.after(:each) do
+
+  end
+
+  config.after(:suite) do
     `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
     `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
+
+    path = "*.{out,err}"
+    delete_files = Dir.glob(path)
+    delete_files.each do |file|
+      File.unlink file
+    end
   end
 end
 
@@ -105,7 +115,7 @@ describe 'PRSpec Tests' do
 
   it 'Verify handling of -p using default filename search pattern' do
     p = PRSpec.new(['-p','test', '--test-mode'])
-    expect(p.tests.length).to eq(4), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
+    expect(p.tests.length).to eq(6), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
   end
 
   it 'Verify handling of bad spacing in spec files' do
@@ -149,6 +159,18 @@ describe 'PRSpec Tests' do
 
   it 'Verify handling of --ignore-pending' do
     p = PRSpec.new(['-p','test', '--test-mode', '--ignore-pending'])
-    expect(p.tests.length).to eq(3), "Expected only non-pending tests to be returned, but was not: #{p.tests.length} found"
+    expect(p.tests.length).to eq(5), "Expected only non-pending tests to be returned, but was not: #{p.tests.length} found"
+  end
+
+  it 'Verify descriptions containing double and single quotes are run successfully' do
+    p = PRSpec.new(['-p','test', '-q']) # expect to run all
+    actual = ''
+    p.processes.each do |proc|
+      actual << proc.output
+    end
+    expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
+    expect(actual).to include("Run options: include {:full_description=>/Sample\\ 5\\ \\-\\ Expect\\ pass/}"), "Expected that a normal test would be run, but it wasn't: #{actual}"
+    expect(actual).to include("Description\\ containing\\ doublequotes"), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
+    expect(actual).to include("Description\\ containing\\ 'singlequotes'"), "Expected that a test with singlequotes in the description would be run, but it wasn't: #{actual}"
   end
 end

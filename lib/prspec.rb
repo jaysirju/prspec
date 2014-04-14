@@ -203,7 +203,7 @@ class PRSpec
             end
           end
           if (match)
-            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,"'")+'"')
+            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,"\"")+'"')
           end
         end
       end
@@ -331,6 +331,7 @@ class PRSpecThread
           error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n")
           $log.error "Something bad happened while executing thread#{@id}: #{error}"
         end
+        close
       end
     end
   end
@@ -342,12 +343,11 @@ class PRSpecThread
   end
 
   def close
-    if (!done?)
-      @thread.stop
-      @thread.kill
-    end
-    File.exist?(@out) ? File.delete(@out) : ''
-    File.exist?(@err) ? File.delete(@err) : ''
+    @thread.sleep
+    @thread.kill
+    @thread = nil
+    File.delete(@out) unless !File.exist?(@out)
+    File.delete(@err) unless !File.exist?(@err)
   end
 
   def get_exports
