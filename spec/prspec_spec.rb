@@ -32,6 +32,7 @@ describe 'PRSpec Tests' do
         --test-mode                  Do everything except actually starting the test threads
     -q, --quiet                      Quiet mode. Do not display parallel thread output
     -h, --help                       Display a help message
+        --ignore-pending             Ignore all pending tests
 '
     path = File.join('.', 'lib','prspec.rb')
     actual = `ruby -r "#{path}" -e "PRSpec.new(['-h'])"`
@@ -49,6 +50,7 @@ describe 'PRSpec Tests' do
         --test-mode                  Do everything except actually starting the test threads
     -q, --quiet                      Quiet mode. Do not display parallel thread output
     -h, --help                       Display a help message
+        --ignore-pending             Ignore all pending tests
 '
     path = File.join('.', 'lib','prspec.rb')
     actual = `ruby -r "#{path}" -e "PRSpec.new(['-z','foo'])"`
@@ -103,7 +105,7 @@ describe 'PRSpec Tests' do
 
   it 'Verify handling of -p using default filename search pattern' do
     p = PRSpec.new(['-p','test', '--test-mode'])
-    expect(p.tests.length).to eq(3), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
+    expect(p.tests.length).to eq(4), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
   end
 
   it 'Verify handling of bad spacing in spec files' do
@@ -143,5 +145,10 @@ describe 'PRSpec Tests' do
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Run options: include {:full_description=>/Sample\\ 5\\ \\-\\ Expect\\ pass/}"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
     expect(actual).not_to include("Run options: include {:full_description=>/Sample\\ 3\\ \\-\\ Expect\\ pass/}"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
+  end
+
+  it 'Verify handling of --ignore-pending' do
+    p = PRSpec.new(['-p','test', '--test-mode', '--ignore-pending'])
+    expect(p.tests.length).to eq(3), "Expected only non-pending tests to be returned, but was not: #{p.tests.length} found"
   end
 end

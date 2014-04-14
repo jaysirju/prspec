@@ -16,4 +16,8 @@ describe 'PRSpec' do
     expected = 'Sample 5'
     expect(actual).to eq(expected), "Result not as expected... expected: '#{expected}'; recieved: '#{actual}'"    
   end
+
+  it 'Sample 6 - Expect ignore' do
+    pending    
+  end
 end

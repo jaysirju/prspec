@@ -58,7 +58,8 @@ class PRSpec
       :help=>false,
       :excludes=>nil,
       :rspec_args=>[],
-      :tag=>''
+      :tag=>'',
+      :ignore_pending=>false
     }
     o = OptionParser.new do |opts|
       opts.banner = "Usage: prspec [options]"
@@ -98,6 +99,10 @@ class PRSpec
         $log.debug "help message requested..."
         options[:help] = true
         puts opts
+      end
+      opts.on("--ignore-pending", "Ignore all pending tests") do
+        $log.debug "ignore pending specified... all pending tests will be excluded"
+        options[:ignore_pending] = true
       end
     end
 
@@ -171,25 +176,35 @@ class PRSpec
     get_test_description = /(?<=')([\s\S]*)(?=')/
     match_test_name_format = /^[\s]*(it)[\s]*(')[\s\S]*(')[\s\S]*(do)/
     files.each do |file|
-      rmatches = File.readlines(file).select { |line| line =~ match_test_name_format }
-      rmatches.each do |m|
-        tag = options[:tag]
-        value = ''
-        match = false
-        if (options[:tag].include?(':')) # split to tag and value
-          tag_value = options[:tag].split(':')
-          tag = ":#{tag_value[0]}"
-          value = "#{tag_value[1]}"
-          if (m.index(tag) && (m.index(value) > m.index(tag))) # if tag not specified match using ''
-            match = true
+      lines = File.readlines(file)
+      for i in 0..lines.length-1
+        if lines[i] =~ match_test_name_format 
+          m = lines[i]
+          tag = options[:tag]
+          value = ''
+          match = false
+          # if tag:value specified then split and compare otherwise just look for tag
+          if (options[:tag].include?(':')) # split to tag and value
+            tag_value = options[:tag].split(':')
+            tag = ":#{tag_value[0]}"
+            value = "#{tag_value[1]}"
+            if (m.index(tag) && (m.index(value) > m.index(tag))) # if tag not specified match using ''
+              match = true
+            end
+          else
+            if (m.index(tag))
+              match = true
+            end
           end
-        else
-          if (m.index(tag))
-            match = true
+          # if ignore_pending specified then skip tests containing 'pending' on next line
+          if (options[:ignore_pending])
+            if (i+1 < lines.length-1 && lines[i+1].include?('pending'))
+              match = false
+            end
           end
-        end
-        if (match)
-          tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,"'")+'"')
+          if (match)
+            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,"'")+'"')
+          end
         end
       end
     end
