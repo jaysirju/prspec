@@ -170,7 +170,7 @@ describe 'PRSpec Tests' do
     end
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Run options: include {:full_description=>/Sample\\ 5\\ \\-\\ Expect\\ pass/}"), "Expected that a normal test would be run, but it wasn't: #{actual}"
-    expect(actual).to include("Description\\ containing\\ doublequotes"), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
+    expect(actual).to include("Description\\ containing\\ \"doublequotes\""), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
     expect(actual).to include("Description\\ containing\\ 'singlequotes'"), "Expected that a test with singlequotes in the description would be run, but it wasn't: #{actual}"
   end
 end

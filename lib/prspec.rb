@@ -203,7 +203,7 @@ class PRSpec
             end
           end
           if (match)
-            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,"\"")+'"')
+            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,'\"')+'"')
           end
         end
       end
