@@ -73,8 +73,22 @@ describe 'PRSpec Tests' do
     expect(actual).to eq(expected), "Expected the default number of threads, #{actual}, to match the number of processors available on the machine: #{expected}"
   end
 
+  it 'Verify ability to specify small number of Processes' do
+    expected = 1
+    p = PRSpec.new(['-n', '1', '--test-mode'])
+    actual = p.processes.length
+    expect(actual).to eq(expected), "Expected the number of threads, #{actual}, to match the number specified in passed in arguments even though there are many tests: #{expected}"
+  end
+
+  it 'Verify number of Processes automatically reduced if low number of tests' do
+    expected = 1
+    p = PRSpec.new(['-p', 'test/inside_check.rb', '--test-mode'])
+    actual = p.processes.length
+    expect(actual).to eq(expected), "Expected the number of threads, #{actual}, to match the number of tests available in the spec file: #{expected}"
+  end
+
   it 'Verify number of running threads when tests running' do
-    p = PRSpec.new(['-p','test/inside_check.rb','-q']) # this will run test/sample.rb
+    p = PRSpec.new(['-p','test/inside_check.rb','-q']) # this will run test/inside_check.rb which verifies that running process count is correct
     actual = ''
     p.processes.each do |proc|
       actual << proc.output
@@ -147,14 +161,18 @@ describe 'PRSpec Tests' do
   end
 
   it 'Verify -t filters by expected tags' do
-    p = PRSpec.new(['-p','test', '-t', 'tagged', '-q']) # expect to run only 1 test
+    p = PRSpec.new([
+      '-p','test',    # look in 'test' directory
+      '-t', 'tagged', # run tests tagged with :tagged => "true"
+      '-q',           # use quiet mode
+      '-n', '1'])     # run in a single thread
     actual = ''
     p.processes.each do |proc|
       actual << proc.output
     end
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
-    expect(actual).to include("Run options: include {:full_description=>/Sample\\ 5\\ \\-\\ Expect\\ pass/}"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
-    expect(actual).not_to include("Run options: include {:full_description=>/Sample\\ 3\\ \\-\\ Expect\\ pass/}"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
+    expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
+    expect(actual).not_to include("Sample\\ 3\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
   end
 
   it 'Verify handling of --ignore-pending' do
@@ -163,14 +181,15 @@ describe 'PRSpec Tests' do
   end
 
   it 'Verify descriptions containing double and single quotes are run successfully' do
-    p = PRSpec.new(['-p','test', '-q']) # expect to run all
+    p = PRSpec.new(['-p','test', '-q', '-n', '1']) # expect to run all in a single thread
     actual = ''
     p.processes.each do |proc|
       actual << proc.output
     end
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
-    expect(actual).to include("Run options: include {:full_description=>/Sample\\ 5\\ \\-\\ Expect\\ pass/}"), "Expected that a normal test would be run, but it wasn't: #{actual}"
+    expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
     expect(actual).to include("Description\\ containing\\ \"doublequotes\""), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
     expect(actual).to include("Description\\ containing\\ 'singlequotes'"), "Expected that a test with singlequotes in the description would be run, but it wasn't: #{actual}"
+    expect(actual).to include("6 examples, 1 failure, 1 pending"), "Expected to run all tests, but didn't: #{actual}"
   end
 end

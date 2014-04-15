@@ -58,7 +58,8 @@ class PRSpec
       :help=>false,
       :excludes=>nil,
       :rspec_args=>[],
-      :tag=>'',
+      :tag_name=>'',
+      :tag_value=>'',
       :ignore_pending=>false
     }
     o = OptionParser.new do |opts|
@@ -81,7 +82,15 @@ class PRSpec
       end
       opts.on("-t", "--tag TAG", "A rspec tag value to filter by") do |v|
         $log.debug "tag filter specified... value: #{v}"
-        options[:tag] = v
+        tag = v
+        value = 'true'
+        if (v.include?(':')) # split to tag and value
+          tag_value = v.split(':')
+          tag = ":#{tag_value[0]}"
+          value = "#{tag_value[1]}"
+        end
+        options[:tag_name] = tag
+        options[:tag_value] = value
       end
       opts.on("-r", "--rspec-args \"RSPEC_ARGS\"", "Additional arguments to be passed to rspec (must be surrounded with double quotes)") do |v|
         $log.debug "rspec arguments specified... value: #{v}"
@@ -180,20 +189,10 @@ class PRSpec
       for i in 0..lines.length-1
         if lines[i] =~ match_test_name_format 
           m = lines[i]
-          tag = options[:tag]
-          value = ''
-          match = false
-          # if tag:value specified then split and compare otherwise just look for tag
-          if (options[:tag].include?(':')) # split to tag and value
-            tag_value = options[:tag].split(':')
-            tag = ":#{tag_value[0]}"
-            value = "#{tag_value[1]}"
-            if (m.index(tag) && (m.index(value) > m.index(tag))) # if tag not specified match using ''
-              match = true
-            end
-          else
-            if (m.index(tag))
-              match = true
+          match = true
+          if (options[:tag_name] != '')
+            if (m.rindex(options[:tag_name]).nil? || (m.rindex(options[:tag_value]) <= m.rindex(options[:tag_name]))) 
+              match = false
             end
           end
           # if ignore_pending specified then skip tests containing 'pending' on next line
