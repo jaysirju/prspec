@@ -19,8 +19,10 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
-    `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
+    if (RUBY_PLATFORM.match(/mingw/i)) # if is Windows
+      `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
+      `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
+    end
 
     path = "*.{out,err}"
     delete_files = Dir.glob(path)

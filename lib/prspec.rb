@@ -265,8 +265,8 @@ class PRSpec
             $log.debug "Thread#{proc.id}: alive..."
           else
             $log.debug "Thread#{proc.id}: done."
-            puts proc.output unless options[:quiet_mode]
-            proc.output = '' unless options[:quiet_mode] # prevent outputting same content multiple times
+            # puts proc.output unless options[:quiet_mode]
+            # proc.output = '' unless options[:quiet_mode] # prevent outputting same content multiple times
           end
         end
         if (continue)
@@ -323,12 +323,17 @@ class PRSpecThread
       Thread.current[:id] = @id
       Dir::chdir @args[:dir] do # change directory for process execution
         begin
-          pid = Process.spawn(cmd, :out=>@out, :err=>@err) # capture both sdtout and stderr in the same pipe
+          pid = nil
+          if (@args[:quiet_mode])
+            pid = Process.spawn(cmd, :out=>@out, :err=>@err) # capture both sdtout and stderr in the same pipe
+          else
+            pid = Process.spawn(cmd)
+          end
           Process.wait(pid)
           @output = File.readlines(@out).join("\n")
         rescue
-          error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n")
-          $log.error "Something bad happened while executing thread#{@id}: #{error}"
+          error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n") if @args[:quiet_mode]
+          $log.error "Something bad happened while executing thread#{@id}: #{error}" if @args[:quiet_mode]
         end
         close
       end
