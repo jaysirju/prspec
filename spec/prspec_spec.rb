@@ -5,6 +5,8 @@ require 'timeout'
 
 RSpec.configure do |config|
   config.around(:each) do |example|
+    # ensure tests are killed after 30 seconds if they don't complete
+    # this is used to verify prspec honours detaching from subprocesses correctly
     Timeout::timeout(30) {
       example.run
     }

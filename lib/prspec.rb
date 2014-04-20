@@ -330,7 +330,7 @@ class PRSpecThread
             pid = Process.spawn(cmd)
           end
           Process.wait(pid)
-          @output = File.readlines(@out).join("\n")
+          @output = File.readlines(@out).join("\n") if @args[:quiet_mode]
         rescue
           error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n") if @args[:quiet_mode]
           $log.error "Something bad happened while executing thread#{@id}: #{error}" if @args[:quiet_mode]
