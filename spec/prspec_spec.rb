@@ -5,6 +5,8 @@ require 'timeout'
 
 RSpec.configure do |config|
   config.around(:each) do |example|
+    # ensure tests are killed after 30 seconds if they don't complete
+    # this is used to verify prspec honours detaching from subprocesses correctly
     Timeout::timeout(30) {
       example.run
     }
@@ -19,8 +21,10 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
-    `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
+    if (RUBY_PLATFORM.match(/mingw/i)) # if is Windows
+      `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
+      `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
+    end
 
     path = "*.{out,err}"
     delete_files = Dir.glob(path)
