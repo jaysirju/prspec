@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'prspec'
-  s.version     = '0.2.1'
+  s.version     = '0.2.2'
   s.date        = '2014-03-15'
   s.summary     = "Parallel rspec execution"
   s.description = "Allows for simple parallel execution of rspec tests."

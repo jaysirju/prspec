@@ -2,7 +2,9 @@ require 'thread'
 require 'optparse'
 require 'log4r'
 require 'parallel'
+require 'yaml'
 require 'tempfile'
+require 'fileutils'
 include Log4r
 
 $log = Logger.new('prspec')
@@ -22,10 +24,15 @@ else
 end
 
 class PRSpec
-  attr_accessor :num_threads, :processes, :tests
+  attr_accessor :num_threads, :processes, :tests, :output
   SPEC_FILE_FILTER = '_spec.rb'
+  INFO_FILE = ".prspec"
 
   def initialize(args)
+    @output = ''
+    # create tracking file
+    yml = { :running_threads => 0 }
+    File.open(INFO_FILE, 'w') { |f| f.write yml.to_yaml }
     if (!args.nil? && args.length > 0 && !args[0].nil?)
       opts = parse_args(args)
       if (!opts[:help])
@@ -46,6 +53,8 @@ class PRSpec
         begin_run(@processes, opts)
       end
     end
+  ensure
+    FileUtils.remove_file(INFO_FILE, :force => true) if File.exists?(INFO_FILE)
   end
 
   def parse_args(args)
@@ -53,7 +62,7 @@ class PRSpec
     options = {
       :dir=>'.',
       :path=>'spec',
-      :thread_count=>get_number_of_threads,
+      :thread_count=>get_number_of_processors,
       :test_mode=>false,
       :help=>false,
       :excludes=>nil,
@@ -127,26 +136,14 @@ class PRSpec
     return options
   end
 
-  def get_number_of_threads
+  def get_number_of_processors
     count = Parallel.processor_count
     return count
   end
 
   def self.get_number_of_running_threads
-    cmd = "ps -ef"
-    if (PRSpec.is_windows?)
-      cmd = "wmic process get commandline"
-    end
-    result = `#{cmd}`
-    count = 0
-    lines = result.split("\n")
-    lines.each do |line|
-      if (line.include?('TEST_ENV_NUMBER='))
-        count += 1
-      end
-    end
-    $log.debug "Found #{count} occurrances of TEST_ENV_NUMBER"
-    return count
+    prspec_info = YAML.load_file(INFO_FILE)
+    return prspec_info[:running_threads].to_i
   end
 
   def get_spec_tests(options)
@@ -248,6 +245,7 @@ class PRSpec
   def begin_run(processes, options)
     if (!processes.nil? && processes.length > 0)
       $log.info "Starting all Child Processes..."
+      update_running_thread_count(processes.length)
       processes.each do |proc|
         if (proc.is_a?(PRSpecThread) && options.is_a?(Hash))
           proc.start unless options[:test_mode]
@@ -255,28 +253,36 @@ class PRSpec
           raise "Invalid datatype where PRSpecThread or Hash exepcted.  Found: #{proc.class.to_s}, #{options.class.to_s}"
         end
       end
-      $log.info "Processes started..."
-      continue = true
-      while continue
-        continue = false
+      $log.info "All processes started..."
+      while processes.length > 0
         processes.each do |proc|
           if (!proc.done?) # confirm threads are running
-            continue = true
             $log.debug "Thread#{proc.id}: alive..."
           else
             $log.debug "Thread#{proc.id}: done."
-            # puts proc.output unless options[:quiet_mode]
-            # proc.output = '' unless options[:quiet_mode] # prevent outputting same content multiple times
+            # collect thread output if in quiet mode
+            if (options[:quiet_mode])
+              @output << proc.output
+            end
+            processes.delete(proc) # remove from the array of processes so we don't count it again
+            update_running_thread_count(processes.length)
           end
         end
-        if (continue)
-          sleep(5) # wait a bit for processes to run and then re-check their status
-        end
+        sleep 0.5 # wait half a second for processes to run and then re-check their status
       end
-      $log.info "Processes complete."
+      $log.info "All processes complete."
     else
       raise "Invalid input passed to method: 'processes' must be a valid Array of PRSpecThread objects"
     end
+  end
+
+  def update_running_thread_count(count)
+    (file = File.new(INFO_FILE,'w')).flock(File::LOCK_EX)
+    yml = { :running_threads => count }
+    file.write yml.to_yaml
+  ensure
+    file.flock(File::LOCK_UN)
+    file.close
   end
 
   def running?
@@ -308,8 +314,10 @@ class PRSpecThread
     @env = environment
     @args = args
     @output = ''
-    @out = "prspec-t-#{@id}.out"
-    @err = "prspec-t-#{@id}.err"
+    @out = Tempfile.new("prspec-t-#{@id}.out").path
+    $log.debug("Thread#{@id} @out file: #{@out}")
+    @err = Tempfile.new("prspec-t-#{@id}.err").path
+    $log.debug("Thread#{@id} @err file: #{@err}")
   end
 
   def start
@@ -350,8 +358,8 @@ class PRSpecThread
     @thread.sleep
     @thread.kill
     @thread = nil
-    File.delete(@out) unless !File.exist?(@out)
-    File.delete(@err) unless !File.exist?(@err)
+    FileUtils.remove_file(@out, :force => true) unless !File.exist?(@out)
+    FileUtils.remove_file(@err, :force => true) unless !File.exist?(@err)
   end
 
   def get_exports
