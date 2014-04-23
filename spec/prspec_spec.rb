@@ -16,8 +16,14 @@ RSpec.configure do |config|
     $p = PRSpec.new(['--test-mode']) # test mode
   end
 
-  config.after(:each) do
+  config.before(:each) do
+    $stdout = StringIO.new # capture STDOUT
+    $stderr = StringIO.new # capture STDERR
+  end
 
+  config.after(:each) do
+    $stdout = STDOUT
+    $stderr = STDERR
   end
 
   config.after(:suite) do
@@ -47,6 +53,7 @@ describe 'PRSpec Tests' do
     -q, --quiet                      Quiet mode. Do not display parallel thread output
     -h, --help                       Display a help message
         --ignore-pending             Ignore all pending tests
+    -s, --serialize-output           Wait for each thread to complete and then output to STDOUT serially
 '
     path = File.join('.', 'lib','prspec.rb')
     actual = `ruby -r "#{path}" -e "PRSpec.new(['-h'])"`
@@ -65,6 +72,7 @@ describe 'PRSpec Tests' do
     -q, --quiet                      Quiet mode. Do not display parallel thread output
     -h, --help                       Display a help message
         --ignore-pending             Ignore all pending tests
+    -s, --serialize-output           Wait for each thread to complete and then output to STDOUT serially
 '
     path = File.join('.', 'lib','prspec.rb')
     actual = `ruby -r "#{path}" -e "PRSpec.new(['-z','foo'])"`
@@ -175,11 +183,25 @@ describe 'PRSpec Tests' do
 
   it 'Verify descriptions containing double and single quotes are run successfully' do
     p = PRSpec.new(['-p','test', '-q', '-n', '1']) # expect to run all in a single thread
+    actual = $stdout.string
+    expect(actual).to eq(''), "Expected that the output would not be sent to STDOUT, but it was: #{actual}"
     actual = p.output
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
     expect(actual).to include("Description\\ containing\\ \"doublequotes\""), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
     expect(actual).to include("Description\\ containing\\ 'singlequotes'"), "Expected that a test with singlequotes in the description would be run, but it wasn't: #{actual}"
     expect(actual).to include("6 examples, 1 failure, 1 pending"), "Expected to run all tests, but didn't: #{actual}"
+  end
+
+  it 'Verify serialized output' do
+    p = PRSpec.new(['-p','test/sample.rb', '-s', '-n', '2']) # expect to run all in a single thread
+    actual = p.output
+    expect(actual).to eq(''), "Expected that the output would not be collected, but it was: #{actual}"
+    actual = $stdout.string
+    expect(actual).not_to eq(''), "Expected that the output would be sent serially to STDOUT, but was not"
+    expect(actual).to include("Sample\\ 1\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
+    expect(actual).to include("Sample\\ 2\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
+    expect(actual).to include("1 example, 0 failures"), "Expected to run all tests, but didn't: #{actual}"
+    expect(actual).not_to include("1 example, 1 failure"), "Expected all tests to pass, but didn't: #{actual}"
   end
 end

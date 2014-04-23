@@ -43,7 +43,7 @@ class PRSpec
           process_tests = divide_spec_tests(tests)
           $log.debug "#{tests.length} Spec tests divided among #{@num_threads} arrays."
         else
-          $log.error "No spec tests found.  Exiting."
+          $log.warn "No spec tests found.  Exiting."
           exit 1
         end
 
@@ -69,7 +69,8 @@ class PRSpec
       :rspec_args=>[],
       :tag_name=>'',
       :tag_value=>'',
-      :ignore_pending=>false
+      :ignore_pending=>false,
+      :serialize=>false
     }
     o = OptionParser.new do |opts|
       opts.banner = "Usage: prspec [options]"
@@ -121,6 +122,10 @@ class PRSpec
       opts.on("--ignore-pending", "Ignore all pending tests") do
         $log.debug "ignore pending specified... all pending tests will be excluded"
         options[:ignore_pending] = true
+      end
+      opts.on("-s", "--serialize-output", "Wait for each thread to complete and then output to STDOUT serially") do
+        $log.debug "serialize output specified... all threads will output to STDOUT as they complete"
+        options[:serialize] = true
       end
     end
 
@@ -260,6 +265,9 @@ class PRSpec
             $log.debug "Thread#{proc.id}: alive..."
           else
             $log.debug "Thread#{proc.id}: done."
+            if (options[:serialize])
+              puts proc.output unless options[:quiet_mode]
+            end
             # collect thread output if in quiet mode
             if (options[:quiet_mode])
               @output << proc.output
@@ -332,16 +340,18 @@ class PRSpecThread
       Dir::chdir @args[:dir] do # change directory for process execution
         begin
           pid = nil
-          if (@args[:quiet_mode])
-            pid = Process.spawn(cmd, :out=>@out, :err=>@err) # capture both sdtout and stderr in the same pipe
+          if (@args[:quiet_mode] || @args[:serialize])
+            pid = Process.spawn(cmd, :out=>@out, :err=>@err) # capture both sdtout and stderr
           else
             pid = Process.spawn(cmd)
           end
           Process.wait(pid)
-          @output = File.readlines(@out).join("\n") if @args[:quiet_mode]
+          @output = File.readlines(@out).join("\n") if (@args[:quiet_mode] || @args[:serialize])
         rescue
-          error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n") if @args[:quiet_mode]
-          $log.error "Something bad happened while executing thread#{@id}: #{error}" if @args[:quiet_mode]
+          if (@args[:quiet_mode] || @args[:serialize])
+            error = "ErrorCode: #{$?.errorcode}; ErrorOutput: "+File.readlines(@err).join("\n")
+            $log.error "Something bad happened while executing thread#{@id}: #{error}"
+          end
         end
         close
       end
