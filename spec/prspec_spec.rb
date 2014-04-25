@@ -2,6 +2,8 @@ require_relative '..\lib\prspec.rb'
 require 'rspec'
 require 'parallel'
 require 'timeout'
+require 'fileutils'
+require 'date'
 
 RSpec.configure do |config|
   config.around(:each) do |example|
@@ -27,11 +29,10 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    if (RUBY_PLATFORM.match(/mingw/i)) # if is Windows
-      `taskkill /F /FI "WindowTitle eq  Administrator:  prspec-test*" /T`
-      `taskkill /F /FI "WindowTitle eq  prspec-test*" /T`
-    end
+    pid = File.read('.pid')
+    kill_pid(pid)
 
+    FileUtils.remove_file('.pid', :force => true) if File.exists?('.pid')
     path = "*.{out,err}"
     delete_files = Dir.glob(path)
     delete_files.each do |file|
@@ -110,13 +111,29 @@ describe 'PRSpec Tests' do
     p = PRSpec.new(['-p','test/sub_process.rb','-q']) # this will run test/sub_process.rb
     sleep(15) # allow time for the tests to complete
     expect(p.running?).to eq(false), "Expected to pass if process detaches correctly, but did not"
-    lines = `wmic process get commandline`
+    pid = File.read('.pid')
     count = 0
-    lines.split("\n").each do |line|
-      if (line.include?("prspec-test"))
-        count += 1
+    # process.detach doesn't work the same in windows and cygwin so this handles the difference
+    # if (is_windows?)
+    #   lines = `tasklist /FI "PID eq #{pid}"`
+    #   lines.split("\n").each do |line|
+    #     if (line.include?("#{pid}"))
+    #       count += 1
+    #     end
+    #   end
+    # else
+      FileUtils.remove_file('never_ending.out', :force => true)
+      sleep 2
+      if (File.exists?('never_ending.out'))
+        count = 1
       end
-    end
+      while File.exists?('never_ending.out')
+        pid = File.read('never_ending.out')
+        kill_pid(pid)
+        FileUtils.remove_file('never_ending.out', :force => true)
+        sleep 2
+      end
+    # end
     sub_process_found = (count >= 1)
     expect(sub_process_found).to eq(true), "Expected that the subprocess is still running, but was not.  Found #{count}"
   end
@@ -188,8 +205,6 @@ describe 'PRSpec Tests' do
     actual = p.output
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
-    expect(actual).to include("Description\\ containing\\ \"doublequotes\""), "Expected that a test with doublequotes in the description would be run, but it wasn't: #{actual}"
-    expect(actual).to include("Description\\ containing\\ 'singlequotes'"), "Expected that a test with singlequotes in the description would be run, but it wasn't: #{actual}"
     expect(actual).to include("6 examples, 1 failure, 1 pending"), "Expected to run all tests, but didn't: #{actual}"
   end
 
@@ -203,5 +218,21 @@ describe 'PRSpec Tests' do
     expect(actual).to include("Sample\\ 2\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
     expect(actual).to include("1 example, 0 failures"), "Expected to run all tests, but didn't: #{actual}"
     expect(actual).not_to include("1 example, 1 failure"), "Expected all tests to pass, but didn't: #{actual}"
+  end
+end
+
+def is_windows?
+  return (RUBY_PLATFORM.match(/mingw/i)) ? true : false
+end
+
+def kill_pid(pid)
+  begin
+    if (is_windows?) # if is Windows
+      `taskkill /F /PID #{pid}`
+    else
+      `kill -f #{pid}`
+    end
+  rescue
+    # do nothing
   end
 end
