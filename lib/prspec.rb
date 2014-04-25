@@ -204,7 +204,7 @@ class PRSpec
             end
           end
           if (match)
-            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,'\"')+'"')
+            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,'\"').gsub(/\\'/,"'")+'"')
           end
         end
       end
@@ -378,7 +378,7 @@ class PRSpecThread
       if PRSpec.is_windows?
         "(SET \"#{k}=#{v}\")"
       else
-        "#{k}=#{v};export #{k}"
+        "export #{k}=#{v}"
       end
     end.join(separator)
 
