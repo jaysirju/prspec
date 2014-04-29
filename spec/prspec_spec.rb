@@ -113,27 +113,17 @@ describe 'PRSpec Tests' do
     expect(p.running?).to eq(false), "Expected to pass if process detaches correctly, but did not"
     pid = File.read('.pid')
     count = 0
-    # process.detach doesn't work the same in windows and cygwin so this handles the difference
-    # if (is_windows?)
-    #   lines = `tasklist /FI "PID eq #{pid}"`
-    #   lines.split("\n").each do |line|
-    #     if (line.include?("#{pid}"))
-    #       count += 1
-    #     end
-    #   end
-    # else
+    FileUtils.remove_file('never_ending.out', :force => true)
+    sleep 2
+    if (File.exists?('never_ending.out'))
+      count = 1
+    end
+    while File.exists?('never_ending.out')
+      pid = File.read('never_ending.out')
+      kill_pid(pid)
       FileUtils.remove_file('never_ending.out', :force => true)
       sleep 2
-      if (File.exists?('never_ending.out'))
-        count = 1
-      end
-      while File.exists?('never_ending.out')
-        pid = File.read('never_ending.out')
-        kill_pid(pid)
-        FileUtils.remove_file('never_ending.out', :force => true)
-        sleep 2
-      end
-    # end
+    end
     sub_process_found = (count >= 1)
     expect(sub_process_found).to eq(true), "Expected that the subprocess is still running, but was not.  Found #{count}"
   end
@@ -155,7 +145,7 @@ describe 'PRSpec Tests' do
 
   it 'Verify handling of -p using default filename search pattern' do
     p = PRSpec.new(['-p','test', '--test-mode'])
-    expect(p.tests.length).to eq(6), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
+    expect(p.tests.length).to eq(8), "Expected searches restricted to filenames ending with _spec.rb only, but was not"
   end
 
   it 'Verify handling of bad spacing in spec files' do
@@ -184,18 +174,42 @@ describe 'PRSpec Tests' do
   it 'Verify -t filters by expected tags' do
     p = PRSpec.new([
       '-p','test',    # look in 'test' directory
-      '-t', 'tagged', # run tests tagged with :tagged => "true"
+      '-t', 'tagged', # run tests tagged with :tagged => true
       '-q',           # use quiet mode
       '-n', '1'])     # run in a single thread
     actual = p.output
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
-    expect(actual).not_to include("Sample\\ 3\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
+    expect(actual).not_to include("Sample\\ 4\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
+  end
+
+  it 'Verify -t filters by expected tags singlequote' do
+    p = PRSpec.new([
+      '-p','test',    # look in 'test' directory
+      '-t', 'tagname:tagvalue', # run tests tagged with :tagname => 'tagvalue'
+      '-q',           # use quiet mode
+      '-n', '1'])     # run in a single thread
+    actual = p.output
+    expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
+    expect(actual).to include("Tag\\ Value\\ surrounded\\ by\\ singlequotes"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
+    expect(actual).not_to include("Sample\\ 4\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
+  end
+
+  it 'Verify -t filters by expected tags doublequote' do
+    p = PRSpec.new([
+      '-p','test',    # look in 'test' directory
+      '-t', 'double:double', # run tests tagged with :double => "double"
+      '-q',           # use quiet mode
+      '-n', '1'])     # run in a single thread
+    actual = p.output
+    expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
+    expect(actual).to include("Tag\\ Value\\ surrounded\\ by\\ doublequotes"), "Expected that the tagged test would be run, but it wasn't: #{actual}"
+    expect(actual).not_to include("Sample\\ 4\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
   end
 
   it 'Verify handling of --ignore-pending' do
     p = PRSpec.new(['-p','test', '--test-mode', '--ignore-pending'])
-    expect(p.tests.length).to eq(5), "Expected only non-pending tests to be returned, but was not: #{p.tests.length} found"
+    expect(p.tests.length).to eq(7), "Expected only non-pending tests to be returned, but was not: #{p.tests.length} found"
   end
 
   it 'Verify descriptions containing double and single quotes are run successfully' do
@@ -205,7 +219,7 @@ describe 'PRSpec Tests' do
     actual = p.output
     expect(actual).not_to eq(''), "Expected that a test would run and have some output, but did not"
     expect(actual).to include("Sample\\ 5\\ \\-\\ Expect\\ pass"), "Expected that a normal test would be run, but it wasn't: #{actual}"
-    expect(actual).to include("6 examples, 1 failure, 1 pending"), "Expected to run all tests, but didn't: #{actual}"
+    expect(actual).to include("8 examples, 1 failure, 1 pending"), "Expected to run all tests, but didn't: #{actual}"
   end
 
   it 'Verify serialized output' do

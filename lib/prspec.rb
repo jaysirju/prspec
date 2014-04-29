@@ -184,7 +184,6 @@ class PRSpec
 
   def get_tests_from_files(files, options)
     tests = []
-    get_test_description = /(?<=')([\s\S]*)(?=')/
     match_test_name_format = /^[\s]*(it)[\s]*(')[\s\S]*(')[\s\S]*(do)/
     files.each do |file|
       lines = File.readlines(file)
@@ -204,13 +203,21 @@ class PRSpec
             end
           end
           if (match)
-            tests.push('"'+m.match(get_test_description)[0].gsub(/["]/,'\"').gsub(/\\'/,"'")+'"')
+            description = get_test_description(m)
+            tests.push("\"#{description}\"")
           end
         end
       end
     end
 
     return tests
+  end
+
+  def get_test_description(description_line)
+    # get index of first "'"
+    trim_front = description_line.sub(/[\s]*(it)[\s]*(')/,'')
+    description = trim_front.sub(/(')[\s]*(,[\s\S]*)*(do)[\s]*/,'')
+    return description.gsub(/["]/,'\"').gsub(/\\'/,"'")
   end
 
   def divide_spec_tests(tests)
