@@ -195,7 +195,7 @@ describe 'PRSpec Tests' do
     expect(actual).not_to include("Sample\\ 4\\ \\-\\ Expect\\ pass"), "Expected that the un-tagged tests would not be run, but they were: #{actual}"
   end
 
-  it 'Verify -t filters by expected tags singlequote' do
+  it 'Verify -t filters by expected tags doublequote' do
     p = PRSpec.new([
       '-p','test',    # look in 'test' directory
       '-t', 'double:double', # run tests tagged with :double => "double"
