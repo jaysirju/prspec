@@ -11,6 +11,10 @@ gem build prspec.gemspec
 ```ruby
 gem install prspec-[version].gem
 ```
+or get from rubygems.org
+```ruby
+gem install prspec
+```
 
 ### Run
     prspec                      				# Run from current directory with default values (looks for tests in a 'spec' subdirectory)
@@ -26,10 +30,7 @@ gem install prspec-[version].gem
     ...
 
 ### Known Issues
-rspec tags must use the following format with the tag value surrounded with double quotes, not single quotes
-```ruby
-it 'some test', :tag_name => "tag_value" do
-```
+default directory detection was shown to not work on 1 user's windows 8 machine.  In this scenario, using "-p spec" solved the problem
 
 ===================
 
