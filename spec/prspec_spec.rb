@@ -114,7 +114,7 @@ describe 'PRSpec Tests' do
     pid = File.read('.pid')
     count = 0
     FileUtils.remove_file('never_ending.out', :force => true)
-    sleep 2
+    sleep 4
     if (File.exists?('never_ending.out'))
       count = 1
     end
