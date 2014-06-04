@@ -29,14 +29,18 @@ RSpec.configure do |config|
   end
 
   config.after(:suite) do
-    pid = File.read('.pid')
-    kill_pid(pid)
+    begin
+      pid = File.read('.pid')
+      kill_pid(pid)
 
-    FileUtils.remove_file('.pid', :force => true) if File.exists?('.pid')
-    path = "*.{out,err}"
-    delete_files = Dir.glob(path)
-    delete_files.each do |file|
-      File.unlink file
+      FileUtils.remove_file('.pid', :force => true) if File.exists?('.pid')
+      path = "*.{out,err}"
+      delete_files = Dir.glob(path)
+      delete_files.each do |file|
+        File.unlink file
+      end
+    rescue
+      # do nothing
     end
   end
 end
