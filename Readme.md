@@ -1,3 +1,4 @@
+![Travis CI Build Status](https://travis-ci.org/bicarbon8/prspec.svg)
 # Run rspec tests in Parallel.
 
 This gem will scan the specified directory for all spec files (those ending in '_spec.rb') and will collect a list of tests from within any matching files. These tests will then be evenly distributed among multiple parallel threads for execution using 'rspec'.
