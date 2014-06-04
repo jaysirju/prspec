@@ -1,4 +1,4 @@
-require_relative '..\lib\prspec.rb'
+require_relative '../lib/prspec.rb'
 require 'rspec'
 require 'parallel'
 require 'timeout'
