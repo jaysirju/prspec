@@ -156,7 +156,10 @@ describe 'PRSpec Tests' do
 
   it 'Verify handling of bad spacing in spec files' do
     p = PRSpec.new(['-p','test/error_sample.rb','--test-mode'])
-    expect(p.tests.length).to eq(8), "Expected bad spacing to be handled correctly, but was not.  Found: #{p.tests.length}"
+    expect(p.tests.length).to eq(10), "Expected bad spacing to be handled correctly, but was not.  Found: #{p.tests.length}"
+    expect(p.tests.include?('"2 Spaces before do"')).to be_true, "Expected that the non-inline example is identified correctly, but was not: #{p.tests}"
+    expect(p.tests.include?('"Single line example"')).to be_true, "Expected that the inline example is identified correctly, but was not: #{p.tests}"
+    expect(p.tests.include?('"Single line example with tag"')).to be_true, "Expected that the inline example with tag is identified correctly, but was not: #{p.tests}"
   end
 
   it 'Verify creation of Processes' do

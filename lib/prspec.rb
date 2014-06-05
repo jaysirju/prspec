@@ -184,7 +184,7 @@ class PRSpec
 
   def get_tests_from_files(files, options)
     tests = []
-    match_test_name_format = /^[\s]*(it)[\s]*(')[\s\S]*(')[\s\S]*(do)/
+    match_test_name_format = /^[\s]*(it)[\s]*(')[\s\S]*(')[\s\S]*(do|{)/
     files.each do |file|
       lines = File.readlines(file)
       for i in 0..lines.length-1
@@ -216,7 +216,7 @@ class PRSpec
   def get_test_description(description_line)
     # get index of first "'"
     trim_front = description_line.sub(/[\s]*(it)[\s]*(')/,'')
-    description = trim_front.sub(/(')[\s]*(,[\s\S]*)*(do)[\s]*/,'')
+    description = trim_front.sub(/(')[\s]*(,[\s\S]*)*(do|{)[\s\S]*/,'')
     return description.gsub(/["]/,'\"').gsub(/\\'/,"'")
   end
 
