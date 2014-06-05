@@ -46,4 +46,8 @@ describe 'PRSpec' do
     expected = true
     expect(actual).to eq(expected)
   end
+
+  it 'Single line example' { expect(true).to eq(true) }
+
+  it 'Single line example with tag', :tagged=>true { expect(true).to eq(true) }
 end
