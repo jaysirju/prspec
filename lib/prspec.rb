@@ -5,9 +5,8 @@ require 'parallel'
 require 'yaml'
 require 'tempfile'
 require 'fileutils'
-include Log4r
 
-$log = Logger.new('prspec')
+$log =  Log4r::Logger.new('prspec')
 $log.outputters = Outputter.stdout
 level = ENV['log_level'] || ''
 case level.downcase
